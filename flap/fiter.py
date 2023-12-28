@@ -9,7 +9,7 @@ class IteratorExhaustedError(Exception):
 
 class FIter:
     def __init__(self, iterable):
-        self._iter = (item for item in iterable)
+        self._iter = iter(iterable)
 
     def __iter__(self):
         return self
@@ -36,7 +36,7 @@ class FIter:
 
     def take(self, n):
         try:
-            self._iter = (item for item in islice(self._iter, n))
+            self._iter = iter(islice(self._iter, n))
         except StopIteration:
             raise IteratorExhaustedError("Iterator is exhausted")
         else:
@@ -56,9 +56,9 @@ class FIter:
 
     def _dispatch_func(self, func, other=None):
         if other is None:
-            self._iter = (item for item in func(self._iter))
+            self._iter = iter(func(self._iter))
         else:
-            self._iter = (item for item in func(self._iter, other))
+            self._iter = iter(func(self._iter, other))
         return self
 
 
