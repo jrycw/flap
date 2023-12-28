@@ -2,7 +2,7 @@ from itertools import count
 
 import pytest
 
-from .fiter import FIter, IteratorExhaustedError
+from .fiter import FIter
 
 
 @pytest.fixture
@@ -67,15 +67,14 @@ def test_complex(f_iter):
         .filter(lambda x: x[-1] in "cd")
         .map(lambda x: x[0])
     )
-
     assert list(lazy_iter) == [(2, 12), (3, 13)]
 
 
-def test_raise1(f_iter):
-    with pytest.raises(IteratorExhaustedError):
-        f_iter.take(5).skip(10)
+def test_result_empty(f_iter):
+    lazy_iter = f_iter.take(5).skip(10)
+    assert list(lazy_iter) == []
 
 
-def test_raise2(f_iter):
-    with pytest.raises(IteratorExhaustedError):
-        f_iter.skip(5).take(10).skip(15)
+def test_result_empty2(f_iter):
+    lazy_iter = f_iter.skip(5).take(10).skip(15)
+    assert list(lazy_iter) == []
