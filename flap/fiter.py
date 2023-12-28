@@ -1,10 +1,7 @@
 from collections import deque  # noqa F401
 from functools import partial
 from itertools import count, islice  # noqa F401
-
-
-class IteratorExhaustedError(Exception):
-    """Iterator is exhausted"""
+import time
 
 
 class FIter:
@@ -23,26 +20,16 @@ class FIter:
         """
         return next(self._iter)
 
-    def _get_next(self):
-        try:
-            return next(self)  # or next(self._iter)
-        except StopIteration:
-            raise IteratorExhaustedError("Iterator is exhausted")
-
     def skip(self, n):
-        for _ in range(n):
-            self._get_next()
+        self._iter = iter(islice(self._iter, n, None))
         return self
 
     def take(self, n):
-        try:
-            self._iter = iter(islice(self._iter, n))
-        except StopIteration:
-            raise IteratorExhaustedError("Iterator is exhausted")
-        else:
-            return self
+        self._iter = iter(islice(self._iter, n))
+        return self
 
     def enumerate(self):
+        """slow"""
         return self._dispatch_func(enumerate)
 
     def zip(self, other):
@@ -63,17 +50,20 @@ class FIter:
 
 
 if __name__ == "__main__":
+    start = time.perf_counter()
     f_iter = FIter(count())
     # f_iter = FIter(range(20))
     result = (
         f_iter.skip(1)
         .skip(2)
         .skip(3)
-        .take(8)
-        .skip(4)
+        .take(8_000_000)
+        .skip(7_000_000)
         .enumerate()
         .zip("abcde")
         .filter(lambda x: x[-1] in "cd")
         .map(lambda x: x[0])
     )
     print(f"{type(result)=}, {result=}, {list(result)=}")
+    end = time.perf_counter()
+    print(end - start)
