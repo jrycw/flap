@@ -1,6 +1,6 @@
 from collections import deque  # noqa F401
 from functools import partial
-from itertools import count  # noqa F401
+from itertools import count, chain  # noqa F401
 
 
 class IteratorExhaustedError(Exception):
@@ -23,18 +23,27 @@ class FIter:
         """
         return next(self._iter)
 
-    def skip(self, n):
+    def _get_next(self):
         try:
-            for _ in range(n):
-                next(self._iter)
+            return next(self)
         except StopIteration:
             raise IteratorExhaustedError("Iterator is exhausted")
-        else:
-            return self
+
+    def skip(self, n):
+        for _ in range(n):
+            self._get_next()
+        return self
 
     def take(self, n):
+        def _take(n=n):
+            c = chain()
+            for _ in range(n):
+                item = self._get_next()
+                c = chain(c, [item])
+            return c
+
         try:
-            self._iter = iter([next(self._iter) for _ in range(n)])
+            self._iter = _take(n)
         except StopIteration:
             raise IteratorExhaustedError("Iterator is exhausted")
         else:
