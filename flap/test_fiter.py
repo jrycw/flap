@@ -55,7 +55,7 @@ def test_basic(f_iter):
     assert list(lazy_iter) == [5, 6]
 
 
-def test_complex(f_iter):
+def test_complex1(f_iter):
     lazy_iter = (
         f_iter.skip(1)
         .skip(2)
@@ -68,6 +68,19 @@ def test_complex(f_iter):
         .map(lambda x: x[0])
     )
     assert list(lazy_iter) == [(2, 12), (3, 13)]
+
+
+def test_complex2(f_iter):
+    lazy_iter = (
+        f_iter.skip(1)
+        .take(8_000_000)
+        .skip(7_000_000)
+        .enumerate()
+        .zip("abcde")
+        .filter(lambda x: x[-1] in "cd")
+        .map(lambda x: x[0])
+    )
+    assert list(lazy_iter) == [(2, 7000003), (3, 7000004)]
 
 
 def test_result_empty(f_iter):
