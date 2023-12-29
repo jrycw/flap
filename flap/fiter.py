@@ -21,14 +21,16 @@ class FIter:
         return next(self._iter)
 
     def skip(self, n):
-        """Using islice directly is easier than dispatching"""
-        self._iter = islice(self._iter, n, None)
-        return self
+        def _islice(iterable, *, start, stop, step):
+            return islice(iterable, start, stop, step)
+
+        return self._dispatch_func(partial(_islice, start=n, stop=None, step=1))
 
     def take(self, n):
-        """Using islice directly is easier than dispatching"""
-        self._iter = islice(self._iter, n)
-        return self
+        def _islice(iterable, *, start):
+            return islice(iterable, start)
+
+        return self._dispatch_func(partial(_islice, start=n))
 
     def enumerate(self):
         return self._dispatch_func(enumerate)
