@@ -19,7 +19,7 @@ def test_skip(f_iter):
 
 def test_take(f_iter):
     lazy_iter = f_iter.take(2)
-    assert list(lazy_iter) == [0, 1]
+    assert lazy_iter.collect() == [0, 1]
 
 
 def test_map(f_iter):
@@ -51,8 +51,8 @@ def test_zip(f_iter):
 
 
 def test_basic(f_iter):
-    lazy_iter = f_iter.skip(2).take(5).skip(3)
-    assert list(lazy_iter) == [5, 6]
+    result = f_iter.skip(2).take(5).skip(3).collect()
+    assert result == [5, 6]
 
 
 def test_complex1(f_iter):
@@ -67,10 +67,28 @@ def test_complex1(f_iter):
         .filter(lambda x: x[-1] in "cd")
         .map(lambda x: x[0])
     )
-    assert list(lazy_iter) == [(2, 12), (3, 13)]
+    assert lazy_iter.collect() == [(2, 12), (3, 13)]
 
 
 def test_complex2(f_iter):
+    lazy_iter = (
+        f_iter.skip(1)
+        .take(8_000_000)
+        .skip(7_000_000)
+        .enumerate()
+        .zip("abcde")
+        .filter(lambda x: x[-1] in "cd")
+        .map(lambda x: x[0])
+    )
+    assert lazy_iter.collect() == [(2, 7000003), (3, 7000004)]
+
+
+def test_dunder_next1(f_iter):
+    lazy_iter = f_iter.skip(1).take(3)
+    assert list(lazy_iter) == [1, 2, 3]
+
+
+def test_dunder_next2(f_iter):
     lazy_iter = (
         f_iter.skip(1)
         .take(8_000_000)
@@ -85,9 +103,21 @@ def test_complex2(f_iter):
 
 def test_result_empty(f_iter):
     lazy_iter = f_iter.take(5).skip(10)
-    assert list(lazy_iter) == []
+    assert lazy_iter.collect() == []
 
 
 def test_result_empty2(f_iter):
     lazy_iter = f_iter.skip(5).take(10).skip(15)
-    assert list(lazy_iter) == []
+    assert lazy_iter.collect() == []
+
+
+def test_collect_constructor(f_iter):
+    lazy_iter = (
+        f_iter.skip(1)
+        .take(5)
+        .enumerate()
+        .zip("abcde")
+        .filter(lambda x: x[-1] in "cd")
+        .map(lambda x: x[0])
+    )
+    assert lazy_iter.collect(dict) == {2: 3, 3: 4}

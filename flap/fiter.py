@@ -1,10 +1,12 @@
 from collections import deque  # noqa F401
-from functools import partial
+from functools import partial, wraps
 from itertools import count, islice  # noqa F401
 import time
 
 
 class FIter:
+    stack = deque()
+
     def __init__(self, iterable):
         self._iter = iter(iterable)
 
@@ -18,54 +20,85 @@ class FIter:
         except StopIteration:
             raise
         """
+        self._consume_stack()
         return next(self._iter)
 
     def skip(self, n):
         def _islice(iterable, *, start, stop, step):
             return islice(iterable, start, stop, step)
 
-        return self._dispatch_func(partial(_islice, start=n, stop=None, step=1))
+        self.stack.append(partial(_islice, start=n, stop=None, step=1))
+        return self
 
     def take(self, n):
         def _islice(iterable, *, start):
             return islice(iterable, start)
 
-        return self._dispatch_func(partial(_islice, start=n))
+        self.stack.append(partial(_islice, start=n))
+        return self
 
     def enumerate(self):
-        return self._dispatch_func(enumerate)
+        self.stack.append(enumerate)
+        return self
 
     def zip(self, other):
         def zipp(x, *, y):
             return zip(x, y)
 
-        return self._dispatch_func(partial(zipp, y=other))
+        self.stack.append(partial(zipp, y=other))
+        return self
 
     def filter(self, func):
-        return self._dispatch_func(partial(filter, func))
+        self.stack.append(partial(filter, func))
+        return self
 
     def map(self, func):
-        return self._dispatch_func(partial(map, func))
-
-    def _dispatch_func(self, func):
-        self._iter = func(self._iter)
+        self.stack.append(partial(map, func))
         return self
+
+    def _consume_stack(self):
+        while True:
+            try:
+                func = self.stack.popleft()
+            except IndexError:
+                break
+            else:
+                self._iter = func(self._iter)
+
+    def collect(self, constructor=list):
+        self._consume_stack()
+        return constructor(self._iter)
+
+
+def timer(fn):
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        start = time.perf_counter()
+        result = fn(*args, **kwargs)
+        elapsed = time.perf_counter() - start
+        print(f"elapsed: {elapsed:0.6f} secs")
+        return result
+
+    return wrapper
+
+
+@timer
+def compute(lazy_iter):
+    return lazy_iter.collect()
 
 
 if __name__ == "__main__":
-    start = time.perf_counter()
     f_iter = FIter(count())
     # f_iter = FIter(range(20))
-    result = (
+
+    lazy_iter = (
         f_iter.skip(1)
         .take(8_000_000)
-        .skip(7_000_000)
+        .skip(8_000_000)
         .enumerate()
         .zip("abcde")
         .filter(lambda x: x[-1] in "cd")
         .map(lambda x: x[0])
     )
-    print(list(result))
-    end = time.perf_counter()
-    elapsed = time.perf_counter() - start
-    print(f"elapsed: {elapsed:0.6f} secs")
+
+    compute(lazy_iter)
