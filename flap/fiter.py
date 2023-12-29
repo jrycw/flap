@@ -5,10 +5,9 @@ import time
 
 
 class FIter:
-    stack = deque()
-
     def __init__(self, iterable):
         self._iter = iter(iterable)
+        self._stack = deque()
 
     def __iter__(self):
         return self
@@ -27,38 +26,38 @@ class FIter:
         def _islice(iterable, *, start, stop, step):
             return islice(iterable, start, stop, step)
 
-        self.stack.append(partial(_islice, start=n, stop=None, step=1))
+        self._stack.append(partial(_islice, start=n, stop=None, step=1))
         return self
 
     def take(self, n):
         def _islice(iterable, *, start):
             return islice(iterable, start)
 
-        self.stack.append(partial(_islice, start=n))
+        self._stack.append(partial(_islice, start=n))
         return self
 
     def enumerate(self):
-        self.stack.append(enumerate)
+        self._stack.append(enumerate)
         return self
 
     def zip(self, other):
         def zipp(x, *, y):
             return zip(x, y)
 
-        self.stack.append(partial(zipp, y=other))
+        self._stack.append(partial(zipp, y=other))
         return self
 
     def filter(self, func):
-        self.stack.append(partial(filter, func))
+        self._stack.append(partial(filter, func))
         return self
 
     def map(self, func):
-        self.stack.append(partial(map, func))
+        self._stack.append(partial(map, func))
         return self
 
     def _consume_stack(self):
-        while self.stack:
-            action = self.stack.popleft()
+        while self._stack:
+            action = self._stack.popleft()
             self._iter = action(self._iter)
 
     def collect(self, constructor=list):
