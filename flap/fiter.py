@@ -57,13 +57,9 @@ class FIter:
         return self
 
     def _consume_stack(self):
-        while True:
-            try:
-                func = self.stack.popleft()
-            except IndexError:
-                break
-            else:
-                self._iter = func(self._iter)
+        while self.stack:
+            action = self.stack.popleft()
+            self._iter = action(self._iter)
 
     def collect(self, constructor=list):
         self._consume_stack()
